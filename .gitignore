@@ -6,10 +6,10 @@ __pycache__/
 icg_env/
 venv/
 
-# Model checkpoints & vocab
-*.pth
-vocab.pkl
-vocab.json
+# # Model checkpoints & vocab
+# *.pth
+# vocab.pkl
+# vocab.json
 
 # Dataset files (if local)
 Flickr8k_Dataset/

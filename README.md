@@ -1,16 +1,45 @@
+For this use case we leverage a pretrained Resnet-50 as the image feature extractor and LSTM as the decoder for the caption generation.
+Adding attention for better caption generation.
+
+Both embeddings - Layer embedding which was trained alongside the entire architecture,
+as well as the pretrained Glove model which was also trained along side the model.
+Embedding unfreeze point added for better training and convergence.
+
+model.py class has the EncoderCNN class for the image feature extraction,
+DecoderRNN which leverages LSTM for decoding and caption generation,
+Additive Attention which attends to one of the 49 spatial patches based on the previous hidden state context
+and using this as well as the input token embedding decoding step takes place.
+LSTM is seeded by the initial hidden state by the global average pooling of the output of the Resnet-50.
+ImageCaptioningModel wraps around all of the above mentioned.
+
+To train the model run 
+python train.py
+
+To predict run
+python pred.py --image_path "your image path"
+
+Webcam_ui utilizes the webcam to generate caption realtime.
+
+
+
 Training setting with model captioning quality every epoch:
 Loading GloVe vectors…
   loaded 400000 tokens
 Warning: missing image, skipping C:/Users/shubh/Desktop/Workspace/Image caption generator/Flicker8k_Dataset/2258277193_586949ec62.jpg.1.jpg
 Loaded batch: torch.Size([32, 3, 224, 224]) torch.Size([32, 26])
+
 Epoch 1/25, Loss: 4.6391
  Test caption @ epoch 0: a man in a black dog is a <UNK> .
+ 
 Epoch 2/25, Loss: 3.7387
  Test caption @ epoch 1: a man in a red shirt is jumping on a <UNK> .
+ 
 Epoch 3/25, Loss: 3.4482
  Test caption @ epoch 2: a man in a red shirt is jumping on a <UNK> .
+ 
 Epoch 4/25, Loss: 3.2882
  Test caption @ epoch 3: a man in a red shirt is standing on a <UNK> .
+ 
 Epoch 5/25, Loss: 3.1602
  Test caption @ epoch 4: a man in a red shirt is jumping over a large tree .
 Epoch 6/25, Loss: 3.0600
@@ -53,5 +82,6 @@ Epoch 24/25, Loss: 2.2973
  Test caption @ epoch 23: a man in a red shirt is standing on a <UNK> in front of a large brown dog .
 Epoch 25/25, Loss: 2.2796
  Test caption @ epoch 24: two young boys are playing with a <UNK> .
+ 
 Saved vocabulary to vocab.json
 Saved full Vocabulary object to vocab.pkl

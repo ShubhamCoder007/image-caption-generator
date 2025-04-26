@@ -104,7 +104,7 @@ def main():
         help="Path to the image file to caption."
     )
     parser.add_argument(
-        "--model_path", default=r'C:\Users\shubh\Desktop\Workspace\Image caption generator\caption_model_flickr_8000.pth',
+        "--model_path", default=r'C:\Users\shubh\Desktop\Workspace\Image caption generator\model\caption_model_flickr_8080.pth',
         help="Path to the .pth checkpoint or state_dict."
     )
     parser.add_argument(
@@ -112,7 +112,7 @@ def main():
         help="Path to vocab.json produced during training."
     )
     parser.add_argument(
-        "--embed_dim", type=int, default=512,
+        "--embed_dim", type=int, default=300,
         help="Embedding dimension (should match training)."
     )
     parser.add_argument(

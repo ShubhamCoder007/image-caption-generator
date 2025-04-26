@@ -12,9 +12,13 @@ venv/
 # vocab.json
 
 # Dataset files (if local)
-Flickr8k_Dataset/
+Flicker8k_Dataset/
 flickr8k_captions.json
 
 # IDE files
 *.idea/
 *.vscode/
+
+embedding/
+
+model/

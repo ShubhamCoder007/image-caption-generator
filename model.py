@@ -37,9 +37,19 @@ class Attention(nn.Module):
         return context, alpha
 
 class DecoderRNN(nn.Module):
-    def __init__(self, vocab_size, embed_dim, hid_dim, feat_dim, attn_dim, dropout=0.3):
+    def __init__(self, vocab_size, embed_dim, hid_dim, feat_dim, attn_dim, dropout=0.3, pretrained_emb: torch.Tensor = None,
+        freeze_emb: bool = False):
         super().__init__()
-        self.embedding = nn.Embedding(vocab_size, embed_dim)
+        
+        if pretrained_emb is not None:
+            # pretrained_emb: (vocab_size, embed_dim)
+            self.embedding = nn.Embedding.from_pretrained(
+                pretrained_emb, freeze=freeze_emb
+            )
+        else:
+            self.embedding = nn.Embedding(vocab_size, embed_dim)
+
+        # self.embedding = nn.Embedding(vocab_size, embed_dim)
         self.attention = Attention(feat_dim, hid_dim, attn_dim)
         self.lstm = nn.LSTMCell(embed_dim+feat_dim, hid_dim)
         self.fc_out = nn.Linear(hid_dim, vocab_size)
@@ -59,10 +69,19 @@ class DecoderRNN(nn.Module):
         return outputs
 
 class ImageCaptioningModel(nn.Module):
-    def __init__(self, vocab_size, embed_dim=512, hid_dim=512, feat_dim=1024, attn_dim=256):
+    def __init__(self, vocab_size, embed_dim=512, hid_dim=512, feat_dim=1024, attn_dim=256, pretrained_emb=None, freeze_emb=False):
         super().__init__()
         self.encoder = EncoderCNN(hid_dim)
-        self.decoder = DecoderRNN(vocab_size, embed_dim, hid_dim, feat_dim, attn_dim)
+        # self.decoder = DecoderRNN(vocab_size, embed_dim, hid_dim, feat_dim, attn_dim, pretrained_emb, freeze_emb)
+        self.decoder = DecoderRNN(
+            vocab_size=vocab_size,
+            embed_dim=embed_dim,
+            hid_dim=hid_dim,
+            feat_dim=feat_dim,
+            attn_dim=attn_dim,
+            pretrained_emb=pretrained_emb,
+            freeze_emb=freeze_emb
+        )
 
     def forward(self, images, captions):
         feats, init_hidden = self.encoder(images)

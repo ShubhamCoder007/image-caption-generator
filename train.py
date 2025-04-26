@@ -3,6 +3,7 @@ import torch.nn as nn
 torch.backends.cudnn.benchmark = True
 from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
+import numpy as np
 
 from vocab import Vocabulary
 from dataset import FlickrDataset, collate_fn
@@ -17,8 +18,9 @@ EMBED_DIM  = 512
 HID_DIM    = 512
 ATTN_DIM   = 256
 LR         = 4e-4
-NUM_EPOCHS = 20
-max_samples = 8000
+NUM_EPOCHS = 25
+max_samples = 8080
+UNFREEZE_POINT = 10
 
 # Paths (set appropriately)
 IMG_ROOT      = 'C:/Users/shubh/Desktop/Workspace/Image caption generator/Flicker8k_Dataset/'
@@ -39,6 +41,35 @@ def main():
     sentences = [cap for caps in data.values() for cap in caps]
     vocab = Vocabulary(freq_threshold=5)
     vocab.build_vocabulary(sentences)
+
+
+    #Pretrained embedding model
+    GLOVE_PATH = "embedding/glove.6B.300d.txt"
+    EMBED_DIM  = 300
+
+    print("Loading GloVe vectors…")
+    glove = {}
+    with open(GLOVE_PATH, 'r', encoding='utf-8') as f:
+        for line in f:
+            parts = line.rstrip().split(" ")
+            word, vec = parts[0], np.array(parts[1:], dtype=np.float32)
+            glove[word] = vec
+    print(f"  loaded {len(glove)} tokens")
+
+    # 2) Build an embedding matrix aligned with vocab.stoi
+    vocab_size = len(vocab)
+    matrix = np.random.normal(
+        scale=0.6, size=(vocab_size, EMBED_DIM)
+    ).astype(np.float32)
+
+    for token, idx in vocab.stoi.items():
+        if token in glove:
+            matrix[idx] = glove[token]
+        # else: leave the random init
+
+    pretrained_embeddings = torch.from_numpy(matrix)
+
+
 
     # 2) Data transforms and loader
     transform = transforms.Compose([
@@ -64,13 +95,31 @@ def main():
 
     # 3) Model, loss, optimizer
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = ImageCaptioningModel(len(vocab), EMBED_DIM, HID_DIM, feat_dim=1024, attn_dim=ATTN_DIM)
+    # model = ImageCaptioningModel(len(vocab), EMBED_DIM, HID_DIM, feat_dim=1024, attn_dim=ATTN_DIM)
+    model = ImageCaptioningModel(
+        vocab_size=len(vocab),
+        embed_dim=EMBED_DIM,
+        hid_dim=HID_DIM,
+        feat_dim=1024,
+        attn_dim=ATTN_DIM,
+        pretrained_emb=pretrained_embeddings,
+        freeze_emb=False
+    )
     model = model.to(device)
     criterion = nn.CrossEntropyLoss(ignore_index=vocab.stoi['<PAD>'])
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
 
     # 4) Training loop
     for epoch in range(NUM_EPOCHS):
+
+        #embedding unfreeze point
+        if epoch == UNFREEZE_POINT + 1:
+            print(f">>> Epoch {epoch}: unfreezing embedding layer")
+            for param in model.decoder.embedding.parameters():
+                param.requires_grad = True
+            # re-create optimizer so embeddings are now included
+            optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
+
         model.train()
         total_loss = 0
         for images, captions in dataloader:
@@ -97,10 +146,10 @@ def main():
         print(f" Test caption @ epoch {epoch}: {cap}")
 
         if epoch%5==0:
-            torch.save(model.state_dict(), f'caption_model_flickr_{max_samples}_ep{epoch}.pth')
+            torch.save(model.state_dict(), f'model/caption_model_flickr_{max_samples}_ep{epoch}.pth')
 
     # Save checkpoint
-    torch.save(model.state_dict(), f'caption_model_flickr_{max_samples}.pth')
+    torch.save(model.state_dict(), f'model/caption_model_flickr_{max_samples}.pth')
 
 
     # … after training is done …
